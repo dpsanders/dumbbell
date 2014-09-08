@@ -1,5 +1,4 @@
 
-
 import Base.show
 type dumbbell
     position::Vector
@@ -159,7 +158,7 @@ function directional_collision(db::dumbbell, walls, axis)
     vx, vy = db.velocity
     θ, ω, l, m = db.angle, db.omega, db.l, db.m
     I = inertia_moment(m, l)
-    w1, w2, = walls
+    #w1, w2, = walls
     
     err = 1e-10
                
@@ -168,118 +167,76 @@ function directional_collision(db::dumbbell, walls, axis)
     
     max_iter = 20
     
-    # particle 1 collides with wall 1
+    col_times = zeros(Float64, 2, 2)
+    position = zeros(Float64, 2, 2)
+    velocity = zeros(Float64, 2, 2)
+    counter = zeros(Int32, 2 ,2)
     
-    tr1w1 = tapprox
-    r1w1, v1w1 = particle_position(db, 1, tr1w1)[[axis,axis+2]]
-    n11=0
-    while ~col_condition(db, 1, 1, tr1w1, walls, axis, tapprox, dt)
-        tr1w1 = tr1w1 - (r1w1-w1)/v1w1
-        r1w1, v1w1 = particle_position(db, 1, tr1w1)[[axis,axis+2]]
-        #col_condition(db, 1, 1, tr1w1, walls, axis, tapprox, dt)
-        n11+=1
-        if n11>max_iter
-            tr1w1=-1
-            break
+    for i in [1:2]
+        for j in [1:2]
+            col_times[i,j] = tapprox
+            position[i,j], velocity[i,j] = particle_position(db, i, col_times[i,j])[[axis, axis+2]]
         end
     end
-    push!(times, tr1w1)
-
-    #particle 1 collides with wall 2
     
-    tr1w2 = tapprox    
-    r1w2, v1w2 = particle_position(db, 1, tr1w2)[[axis,axis+2]]
-    n12 = 0
-    while ~col_condition(db, 1, 2, tr1w2, walls, axis, tapprox, dt)
-        tr1w2 = tr1w2 - (r1w2-w2)/v1w2
-        r1w2, v1w2 = particle_position(db, 1, tr1w2)[[axis,axis+2]]
-        #col_condition(db, 1, 2, tr1w2, walls, axis, tapprox, dt)
-        n12+=1
-        if n12>max_iter
-            tr1w2=-1
-            break
+    for i in [1:2]
+        for j in [1:2]
+            while ~col_condition(db, i, j, col_times[i,j], walls, axis, tapprox, dt)
+                col_times[i,j] = col_times[i,j] - (position[i,j]-walls[j])/velocity[i,j]
+                position[i,j], velocity[i,j] = particle_position(db, i, col_times[i,j])[[axis, axis+2]]
+                counter[i,j] += 1
+                if counter[i,j]>max_iter
+                    col_times[i,j] = -1.
+                    break
+                end
+            end
+            
+            push!(times, col_times[i,j])
+            
         end
     end
-     push!(times, tr1w2)
-    
-    # particle 2 collides with wall 1
-    
-    tr2w1 = tapprox
-    r2w1, v2w1 = particle_position(db, 2, tr2w1)[[axis,axis+2]]
-    n21=0
-    while ~col_condition(db, 2, 1, tr2w1, walls, axis, tapprox, dt)
-        tr2w1 = tr2w1 - (r2w1-w1)/v2w1
-        r2w1, v2w1 = particle_position(db, 2, tr2w1)[[axis,axis+2]]
-        n21+=1
-        if n21>max_iter
-            tr2w1 = -1
-            break
-        end
-    end
-    push!(times,tr2w1)
-    
-    
-    #particle 2 collides with wall 2
-    
-    tr2w2 = tapprox
-    r2w2, v2w2 = particle_position(db, 2, tr2w2)[[axis,axis+2]]
-    n22 = 0
-    while ~col_condition(db, 2, 2, tr2w2, walls, axis, tapprox, dt)
-        tr2w2 = tr2w2 - (r2w2-w2)/v2w2
-        r2w2, v2w2 = particle_position(db, 2, tr2w2)[[axis,axis+2]]
-        n22+=1
-        if n22>max_iter
-            tr2w2=-1
-            break
-        end
-    end
-    push!(times,tr2w2)
-        
-        
-     
+         
    # elegir cuál es el tiempo correcto
     times = times[times.>0]
     if length(times)!=0
         tc = minimum(times)
     else
-        return("Error  ", db.collision_counter)
+        return("Error  ", db.collision_counter, col_times)
     end
            
     θ = (θ + ω*tc)%(2pi) # angle position of the dumbbell when the collision occurs
 
     if axis ==1  # collision in the 'x' direction (vertical walls)
-        if tc==tr1w1 || tc==tr1w2 # the first particle collides
+        if tc==col_times[1, 1] || tc==col_times[1, 2] # the first particle collides
             α = -θ
             part = 1
-        elseif tc==tr2w1 || tc==tr2w2 # the second particle collides
+        elseif tc==col_times[2, 1] || tc==col_times[2, 2] # the second particle collides
             α = θ
             part = 2
         end
         
         v_f, ω_f = collision_transformation(vx, ω, α, l, m, I)
         
-        return [tc, v_f, vy, ω_f, part, axis, tr1w1, tr1w2, tr2w1, tr2w2]
+        return tc, v_f, vy, ω_f, part, axis, col_times
         
         
     elseif axis==2 # collision in the y direction (horizonta walls)
-        if tc==tr1w1 || tc==tr1w2 # the first particle collides
+        if tc==col_times[1, 1] || tc==col_times[1, 2] # the first particle collides
             α = pi/2 - θ
             part = 1
-        elseif tc==tr2w1 || tc==tr2w2 # the second particle collides
+        elseif tc==col_times[2, 1] || tc==col_times[2, 2] # the second particle collides
             α = θ - pi/2
             part = 2
         end
         
         v_f, ω_f = collision_transformation(vy, ω, α, l, m, I)
         
-        return [tc, vx, v_f, ω_f, part, axis, tr1w1, tr1w2, tr2w1, tr2w2]
+        return tc, vx, v_f, ω_f, part, axis, col_times
         
     else
         println("Incorrect direction")
     end
-        
-
-    
+            
 end
 
 
@@ -315,8 +272,6 @@ function collision(db::dumbbell, vert_walls = [-3, 3], horiz_walls =[-2, 2])
     db.velocity = [vx_new, vy_new]
     db.omega = ω_new
     x_f, y_f = db.position; θ_f = db.angle
-    
-    #println(db)
     
     Γ_f = [x_f, y_f, θ_f, vx_new, vy_new, I*ω_new]
     
@@ -360,9 +315,10 @@ function next_collision(db::dumbbell, vert_walls = [-3, 3], horiz_walls =[-2, 2]
 end
     
 
-
+#=
 
 manc = dumbbell([1., 1.], pi/6, [2.1, 0.6], 2., 1, 0.2, 0)
 
 manc
+=#
 
