@@ -314,6 +314,110 @@ function next_collision(db::dumbbell, vert_walls = [-3, 3], horiz_walls =[-2, 2]
 
 end
     
+function collision_time(db::dumbbell, vert_walls=[-3,3], horiz_walls=[-2,2])
+    tcx = directional_collision(db, vert_walls, 1)[1]
+    tcy = directional_collision(db, horiz_walls, 2)[1]
+    if tcx<tcy
+        return [tcx, 1]
+    else
+        return [tcy, 2]
+    end
+end
+
+
+function collision_parts(db::dumbbell, vert_walls=[-3,3], horiz_walls=[-2,2])
+    db.collision_counter +=1
+    ct, axis = collision_time(db, vert_walls, horiz_walls)
+    
+    tcx, vx_fx, vy_fx, ω_fx, part_x = directional_collision(db, vert_walls, 1)[1:5]
+    tcy, vx_fy, vy_fy, ω_fy, part_y = directional_collision(db, horiz_walls, 2) [1:5]
+    
+    x_0, y_0 = db.position; θ_0 = db.angle
+    vx_0, vy_0 = db.velocity; ω_0 = db.omega
+    l = db.l; m = db.m; I = inertia_moment(m,l)
+  
+    
+    if tcx < tcy && tcx >0
+        tc, vx_new, vy_new, ω_new, part = tcx, vx_fx, vy_fx, ω_fx, part_x
+        wall = "vertical"
+        
+    elseif tcy < tcx && tcy>0
+        tc, vx_new, vy_new, ω_new, part = tcy, vx_fy, vy_fy, ω_fy, part_y
+        wall = "horizontal"
+    else
+        return "Error"
+        
+    end
+    
+    move(db,tc) # the dumbbell is moved to the collision point
+           
+    db.velocity = [vx_new, vy_new]
+    db.omega = ω_new
+    
+    x1, y1 = particle_position(db,1)[1:2]
+    x2, y2 = particle_position(db,2)[1:2]
+    
+    return [x1, y1, x2, y2, ct, wall]
+    
+end
+    
+
+function orbit(db::dumbbell, T, dt=0.05, vert_walls=[-3,3], horiz_walls=[-2,2])
+
+    ct = collision_time(db, vert_walls, horiz_walls)[1]
+    t = 0.
+    x1, y1 = particle_position(db,1, t)[1:2]
+    x2, y2 = particle_position(db,2,t)[1:2]
+    pos_p1 = [x1 y1]
+    pos_p2 = [x2 y2]    
+    times = [t]
+    
+    # T is less than the collisiont time 'ct'
+    if T<ct
+        n = int(T/dt)
+        for t in linspace(dt, T, n)
+            x1, y1 = particle_position(db,1, t)[1:2]
+            x2, y2 = particle_position(db,2,t)[1:2]
+            pos_p1 = vcat(pos_p1, [x1 y1])
+            pos_p2 = vcat(pos_p2, [x2 y2])
+            push!(times, t)
+        end
+        
+        return times, pos_p1, pos_p2
+    
+        # T is greater than the collision time
+    else
+       while t <= T
+            nt=0.
+            while nt < ct && t<T
+                x1, y1 = particle_position(db,1, nt)[1:2]
+                x2, y2 = particle_position(db,2,nt)[1:2]
+                pos_p1 = vcat(pos_p1, [x1 y1])
+                pos_p2 = vcat(pos_p2, [x2 y2])
+                push!(times, t)
+                t += dt
+                nt += dt
+            end
+            collision_parts(db, vert_walls, horiz_walls)
+            ct = collision_time(db, vert_walls, horiz_walls)[1]
+        end
+        return times, pos_p1, pos_p2
+    end
+    
+end
+
+
+#=using PyPlot
+
+
+times, p1, p2 =orbit(manc,12.);
+
+plot(p1[1:end,1], p1[1:end,2])
+plot(p2[1:end,1], p2[1:end,2])
+hlines([-2,2], -3, 3, lw=2.5)
+vlines([-3,3], -2, 2, lw=2.5)
+xlim(-3.2,3.2); ylim(-2.2, 2.2)
+show() =#
 
 #=
 
