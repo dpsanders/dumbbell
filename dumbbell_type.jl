@@ -407,7 +407,7 @@ function orbit(db::dumbbell, T, dt=0.05, vert_walls=[-3,3], horiz_walls=[-2,2])
 end
 
 
-#=using PyPlot
+using PyPlot
 
 
 times, p1, p2 =orbit(manc,12.);
@@ -417,10 +417,10 @@ plot(p2[1:end,1], p2[1:end,2])
 hlines([-2,2], -3, 3, lw=2.5)
 vlines([-3,3], -2, 2, lw=2.5)
 xlim(-3.2,3.2); ylim(-2.2, 2.2)
-show() =#
+plt.savefig("Dumbbell-with-Julia.pdf")
+
 
 #=
-
 manc = dumbbell([1., 1.], pi/6, [2.1, 0.6], 2., 1, 0.2, 0)
 
 manc
