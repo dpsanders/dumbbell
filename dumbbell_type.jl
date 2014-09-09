@@ -1,4 +1,3 @@
-
 import Base.show
 type dumbbell
     position::Vector
@@ -82,16 +81,14 @@ function ct_approx(db::dumbbell, wall, direction)
     r1 = particle_position(db, 1)[direction]
     r2 = particle_position(db, 2)[direction]
     
-    # distances from the both particles to each wall
-    
+    # distances from the both particles to each wall    
     d11 = abs(w1-r1); d12 = abs(w1-r2); d21 = abs(w2-r1); d22 =abs(w2-r2)
     V = sqrt(norm(v)^2+ (l*ω)^2)
     
     if db.collision_counter!=0
-    
-    distances = sort([d11, d12, d21, d22])
-    dmin = distances[2]
-    times = [dmin, 1.]/V
+        distances = sort([d11, d12, d21, d22])
+        dmin = distances[2]
+        times = [dmin, 1.]/V
         
     else
         distances = [d11, d12, d21, d22, 1.]
@@ -107,8 +104,6 @@ function ct_approx(db::dumbbell, wall, direction)
             
         r1 = particle_position(db, 1, t_elapsed)[direction]
         r2 = particle_position(db, 2, t_elapsed)[direction]
-        
-        
         
     end
     # The output is the last time when the condition of both particles being within 'w1' y 'w2'  was fulfilled;
@@ -128,8 +123,7 @@ function collision_transformation(v_i, ω_i, α, l=0.2, m=1., I = inertia_moment
     # and the mass, length and intertia moment of the dumbbell.
     # The output are the new (normal component of the) velocity and angular velocity, v_f, ω_f
     
-    denom = m*l^2 + I*csc(α)^2
-    
+    denom = m*l^2 + I*csc(α)^2    
        
     v_f = (1 - (2*I*csc(α)^2)/denom)*v_i - (2*l*I*csc(α)/denom)*ω_i
     
@@ -142,15 +136,11 @@ end
 
 function col_condition(db::dumbbell, i::Int, j::Int, t, wall, direction::Int, t_approx, δt=0.01)
     err = 1e-10
-    #tapprox = t
-    #w1 = wall[1]; w2 = wall[2]
     w = wall[j]
     r = particle_position(db, i, t)[direction]
-    #t_approx, dt = ct_approx(db, w1, w2, δt)
-    
+        
     dist = abs(w-r);
-    #println(r, "\t", dist, "\t", t, "\t", t_approx)
-    (dist<err && t_approx < t <= t_approx + δt)
+   (dist<err && t_approx < t <= t_approx + δt)
 end
 
 
@@ -158,13 +148,10 @@ function directional_collision(db::dumbbell, walls, axis)
     vx, vy = db.velocity
     θ, ω, l, m = db.angle, db.omega, db.l, db.m
     I = inertia_moment(m, l)
-    #w1, w2, = walls
-    
     err = 1e-10
                
     tapprox, dt = ct_approx(db, walls, axis)
     times = Float64[]
-    
     max_iter = 20
     
     col_times = zeros(Float64, 2, 2)
@@ -172,28 +159,22 @@ function directional_collision(db::dumbbell, walls, axis)
     velocity = zeros(Float64, 2, 2)
     counter = zeros(Int32, 2 ,2)
     
-    for i in [1:2]
-        for j in [1:2]
-            col_times[i,j] = tapprox
-            position[i,j], velocity[i,j] = particle_position(db, i, col_times[i,j])[[axis, axis+2]]
-        end
+    for i in [1:2], j in [1:2]
+        col_times[i,j] = tapprox
+        position[i,j], velocity[i,j] = particle_position(db, i, col_times[i,j])[[axis, axis+2]]
     end
     
-    for i in [1:2]
-        for j in [1:2]
-            while ~col_condition(db, i, j, col_times[i,j], walls, axis, tapprox, dt)
-                col_times[i,j] = col_times[i,j] - (position[i,j]-walls[j])/velocity[i,j]
-                position[i,j], velocity[i,j] = particle_position(db, i, col_times[i,j])[[axis, axis+2]]
-                counter[i,j] += 1
-                if counter[i,j]>max_iter
-                    col_times[i,j] = -1.
-                    break
-                end
+    for i in [1:2], j in [1:2]
+        while ~col_condition(db, i, j, col_times[i,j], walls, axis, tapprox, dt)
+            col_times[i,j] = col_times[i,j] - (position[i,j]-walls[j])/velocity[i,j]
+            position[i,j], velocity[i,j] = particle_position(db, i, col_times[i,j])[[axis, axis+2]]
+            counter[i,j] += 1
+            if counter[i,j]>max_iter
+                col_times[i,j] = -1.
+                break
             end
-            
-            push!(times, col_times[i,j])
-            
         end
+        push!(times, col_times[i,j])
     end
          
    # elegir cuál es el tiempo correcto
@@ -243,14 +224,12 @@ end
 
 function collision(db::dumbbell, vert_walls = [-3, 3], horiz_walls =[-2, 2])
     db.collision_counter += 1
-    #δt = 0.005
     tcx, vx_fx, vy_fx, ω_fx, part_x = directional_collision(db, vert_walls, 1)[1:5]
     tcy, vx_fy, vy_fy, ω_fy, part_y = directional_collision(db, horiz_walls, 2) [1:5]
     
     x_0, y_0 = db.position; θ_0 = db.angle
     vx_0, vy_0 = db.velocity; ω_0 = db.omega
     l = db.l; m = db.m; I = inertia_moment(m,l)
-    
     
     # vector del espacio fase inicial (antes de que la mancuerna se mueva hacia el punto de colisión)
     Γ_0 = [x_0, y_0, θ_0, vx_0, vy_0, I*ω_0]
@@ -299,7 +278,6 @@ function next_collision(db::dumbbell, vert_walls = [-3, 3], horiz_walls =[-2, 2]
         return "Error"
     end
         
-    #part = 
     x1, y1 = particle_position(db, 1, tc)
     x2, y2 = particle_position(db, 2, tc)
     
@@ -313,7 +291,8 @@ function next_collision(db::dumbbell, vert_walls = [-3, 3], horiz_walls =[-2, 2]
     return new_db, [tc, x1, y1, x2, y2]
 
 end
-    
+
+
 function collision_time(db::dumbbell, vert_walls=[-3,3], horiz_walls=[-2,2])
     tcx = directional_collision(db, vert_walls, 1)[1]
     tcy = directional_collision(db, horiz_walls, 2)[1]
@@ -323,6 +302,7 @@ function collision_time(db::dumbbell, vert_walls=[-3,3], horiz_walls=[-2,2])
         return [tcy, 2]
     end
 end
+
 
 
 function collision_parts(db::dumbbell, vert_walls=[-3,3], horiz_walls=[-2,2])
@@ -405,24 +385,4 @@ function orbit(db::dumbbell, T, dt=0.05, vert_walls=[-3,3], horiz_walls=[-2,2])
     end
     
 end
-
-
-using PyPlot
-
-
-times, p1, p2 =orbit(manc,12.);
-
-plot(p1[1:end,1], p1[1:end,2])
-plot(p2[1:end,1], p2[1:end,2])
-hlines([-2,2], -3, 3, lw=2.5)
-vlines([-3,3], -2, 2, lw=2.5)
-xlim(-3.2,3.2); ylim(-2.2, 2.2)
-plt.savefig("Dumbbell-with-Julia.pdf")
-
-
-#=
-manc = dumbbell([1., 1.], pi/6, [2.1, 0.6], 2., 1, 0.2, 0)
-
-manc
-=#
 
