@@ -118,4 +118,6 @@ for k in 1:6
     plot(λ_time[:,k], color=colors[k], ls="--")
 end
 
+savefig("Lyapunov_spectrum.pdf")
+
 show()
