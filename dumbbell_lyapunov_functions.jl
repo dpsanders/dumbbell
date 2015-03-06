@@ -174,15 +174,17 @@ function check_dumbbell_test(check_frequency, db::dumbbell, walls, exponents)
     cc = db.collision_counter
     cf = check_frequency
     if cc%cf==0
-        exp_time, exp_cc = exponents
+        λ_time, λ_cc = exponents
         sum1 = 0.; sum2 = 0.
         for j in 1:6
-            sum1 += exp_time[cc,j]
-            sum2 += exp_cc[cc,j]
+            sum1 += λ_time[cc,j]
+            sum2 += λ_cc[cc,j]
         end
 
         println("Sum of Lyapunov Exponentes after \t"*string(cc)*" collisions")
+        println("Sum of λ with;\n elapsed time;\t number of collisions ")
         println(sum1, "\t", sum2)
+        println("\n------------\n")
 
         x1, y1 = particle_position(db, 1)[1:2];   x2, y2 = particle_position(db, 2)[1:2]
         vert_walls = walls[1:2]; horiz_walls = walls[3:4] # coordinates of the vertical and horizontal walls, respectively
