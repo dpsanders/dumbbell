@@ -345,7 +345,7 @@ function collision_parts(db::dumbbell, vert_walls=[-3,3], horiz_walls=[-2,2])
 end
 
 
-function orbit(db::dumbbell, T, dt=0.05, vert_walls=[-3,3], horiz_walls=[-2,2])
+function trajectory(db::dumbbell, T, dt=0.05, vert_walls=[-3,3], horiz_walls=[-2,2])
 
     ct = collision_time(db, vert_walls, horiz_walls)[1]
     t = 0.
